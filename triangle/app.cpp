@@ -21,39 +21,6 @@ const int MAX_FRAMES_IN_FLIGHT = 2;
 static const std::vector<const char *> deviceExtensions_ = {
     VK_KHR_SWAPCHAIN_EXTENSION_NAME};
 
-namespace Vulkan {
-class PhysicalDevice {
-public:
-  VkPhysicalDevice handle;
-
-  static std::shared_ptr<PhysicalDevice>
-  PickPhysicalDevice(VkInstance instance, VkSurfaceKHR surface) {
-    uint32_t deviceCount = 0;
-    vkEnumeratePhysicalDevices(instance, &deviceCount, nullptr);
-    if (deviceCount == 0) {
-      // throw std::runtime_error("failed to find GPUs with Vulkan support!");
-      return nullptr;
-    }
-
-    std::vector<VkPhysicalDevice> devices(deviceCount);
-    vkEnumeratePhysicalDevices(instance, &deviceCount, devices.data());
-
-    for (const auto &device : devices) {
-      if (Vulkan::IsDeviceSuitable(device, surface, deviceExtensions_)) {
-        auto ptr = std::shared_ptr<PhysicalDevice>(new PhysicalDevice);
-        ptr->handle = device;
-        return ptr;
-      }
-    }
-
-    // throw std::runtime_error("failed to find a suitable GPU!");
-    return nullptr;
-  }
-
-private:
-};
-} // namespace Vulkan
-
 class Impl {
 
 public:
@@ -74,8 +41,8 @@ public:
     int w, h;
     surface_ = getSurface(instance_->handle, &w, &h);
 
-    physicalDevice_ =
-        Vulkan::PhysicalDevice::PickPhysicalDevice(instance_->handle, surface_);
+    physicalDevice_ = Vulkan::PickPhysicalDevice(
+        instance_->handle, surface_, deviceExtensions_);
     createLogicalDevice();
     createSwapChain(w, h);
     createImageViews();
@@ -141,7 +108,7 @@ private:
   std::shared_ptr<Vulkan::Instance> instance_;
   VkSurfaceKHR surface_;
 
-  std::shared_ptr<Vulkan::PhysicalDevice> physicalDevice_;
+  VkPhysicalDevice physicalDevice_;
   VkDevice device_;
 
   VkQueue graphicsQueue_;
@@ -192,7 +159,7 @@ private:
 
   void createLogicalDevice() {
     auto indices = Vulkan::QueueFamilyIndices::FindQueueFamilies(
-        physicalDevice_->handle, surface_);
+        physicalDevice_, surface_);
 
     std::vector<VkDeviceQueueCreateInfo> queueCreateInfos;
     std::set<uint32_t> uniqueQueueFamilies = {indices.graphicsFamily.value(),
@@ -230,7 +197,7 @@ private:
     // } else
     { createInfo.enabledLayerCount = 0; }
 
-    if (vkCreateDevice(physicalDevice_->handle, &createInfo, nullptr,
+    if (vkCreateDevice(physicalDevice_, &createInfo, nullptr,
                        &device_) != VK_SUCCESS) {
       throw std::runtime_error("failed to create logical device!");
     }
@@ -243,7 +210,7 @@ private:
   void createSwapChain(int width, int height) {
     auto swapChainSupport =
         Vulkan::SwapChainSupportDetails::QuerySwapChainSupport(
-            physicalDevice_->handle, surface_);
+            physicalDevice_, surface_);
 
     VkSurfaceFormatKHR surfaceFormat =
         chooseSwapSurfaceFormat(swapChainSupport.formats);
@@ -270,7 +237,7 @@ private:
     createInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
 
     auto indices = Vulkan::QueueFamilyIndices::FindQueueFamilies(
-        physicalDevice_->handle, surface_);
+        physicalDevice_, surface_);
     uint32_t queueFamilyIndices[] = {indices.graphicsFamily.value(),
                                      indices.presentFamily.value()};
 
@@ -515,7 +482,7 @@ private:
 
   void createCommandPool() {
     auto queueFamilyIndices = Vulkan::QueueFamilyIndices::FindQueueFamilies(
-        physicalDevice_->handle, surface_);
+        physicalDevice_, surface_);
 
     VkCommandPoolCreateInfo poolInfo{};
     poolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;

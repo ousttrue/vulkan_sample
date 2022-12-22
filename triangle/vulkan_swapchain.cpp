@@ -68,7 +68,7 @@ QueueFamilyIndices::FindQueueFamilies(VkPhysicalDevice device,
 }
 
 static bool
-checkDeviceExtensionSupport(VkPhysicalDevice device,
+CheckDeviceExtensionSupport(VkPhysicalDevice device,
                             const std::vector<const char *> &deviceExtensions) {
   uint32_t extensionCount;
   vkEnumerateDeviceExtensionProperties(device, nullptr, &extensionCount,
@@ -88,12 +88,13 @@ checkDeviceExtensionSupport(VkPhysicalDevice device,
   return requiredExtensions.empty();
 }
 
-bool IsDeviceSuitable(VkPhysicalDevice device, VkSurfaceKHR surface,
-                      const std::vector<const char *> &deviceExtensions) {
+static bool
+IsDeviceSuitable(VkPhysicalDevice device, VkSurfaceKHR surface,
+                 const std::vector<const char *> &deviceExtensions) {
   auto indices = QueueFamilyIndices::FindQueueFamilies(device, surface);
 
   bool extensionsSupported =
-      checkDeviceExtensionSupport(device, deviceExtensions);
+      CheckDeviceExtensionSupport(device, deviceExtensions);
 
   bool swapChainAdequate = false;
   if (extensionsSupported) {
@@ -104,6 +105,29 @@ bool IsDeviceSuitable(VkPhysicalDevice device, VkSurfaceKHR surface,
   }
 
   return indices.isComplete() && extensionsSupported && swapChainAdequate;
+}
+
+VkPhysicalDevice
+PickPhysicalDevice(VkInstance instance, VkSurfaceKHR surface,
+                   const std::vector<const char *> &deviceExtensions) {
+  uint32_t deviceCount = 0;
+  vkEnumeratePhysicalDevices(instance, &deviceCount, nullptr);
+  if (deviceCount == 0) {
+    // throw std::runtime_error("failed to find GPUs with Vulkan support!");
+    return VK_NULL_HANDLE;
+  }
+
+  std::vector<VkPhysicalDevice> devices(deviceCount);
+  vkEnumeratePhysicalDevices(instance, &deviceCount, devices.data());
+
+  for (const auto &device : devices) {
+    if (IsDeviceSuitable(device, surface, deviceExtensions)) {
+      return device;
+    }
+  }
+
+  // throw std::runtime_error("failed to find a suitable GPU!");
+  return VK_NULL_HANDLE;
 }
 
 } // namespace Vulkan
