@@ -21,47 +21,6 @@ const int MAX_FRAMES_IN_FLIGHT = 2;
 static const std::vector<const char *> deviceExtensions_ = {
     VK_KHR_SWAPCHAIN_EXTENSION_NAME};
 
-struct QueueFamilyIndices {
-  std::optional<uint32_t> graphicsFamily;
-  std::optional<uint32_t> presentFamily;
-
-  bool isComplete() {
-    return graphicsFamily.has_value() && presentFamily.has_value();
-  }
-};
-QueueFamilyIndices findQueueFamilies(VkPhysicalDevice device,
-                                     VkSurfaceKHR surface) {
-  uint32_t queueFamilyCount = 0;
-  vkGetPhysicalDeviceQueueFamilyProperties(device, &queueFamilyCount, nullptr);
-
-  std::vector<VkQueueFamilyProperties> queueFamilies(queueFamilyCount);
-  vkGetPhysicalDeviceQueueFamilyProperties(device, &queueFamilyCount,
-                                           queueFamilies.data());
-
-  QueueFamilyIndices indices;
-  int i = 0;
-  for (const auto &queueFamily : queueFamilies) {
-    if (queueFamily.queueFlags & VK_QUEUE_GRAPHICS_BIT) {
-      indices.graphicsFamily = i;
-    }
-
-    VkBool32 presentSupport = false;
-    vkGetPhysicalDeviceSurfaceSupportKHR(device, i, surface, &presentSupport);
-
-    if (presentSupport) {
-      indices.presentFamily = i;
-    }
-
-    if (indices.isComplete()) {
-      break;
-    }
-
-    i++;
-  }
-
-  return indices;
-}
-
 namespace Vulkan {
 class PhysicalDevice {
 public:
@@ -97,14 +56,16 @@ public:
 
 private:
   static bool isDeviceSuitable(VkPhysicalDevice device, VkSurfaceKHR surface) {
-    QueueFamilyIndices indices = findQueueFamilies(device, surface);
+    auto indices =
+        Vulkan::QueueFamilyIndices::FindQueueFamilies(device, surface);
 
     bool extensionsSupported = checkDeviceExtensionSupport(device);
 
     bool swapChainAdequate = false;
     if (extensionsSupported) {
       auto swapChainSupport =
-          Vulkan::SwapChainSupportDetails::QuerySwapChainSupport(device, surface);
+          Vulkan::SwapChainSupportDetails::QuerySwapChainSupport(device,
+                                                                 surface);
       swapChainAdequate = !swapChainSupport.formats.empty() &&
                           !swapChainSupport.presentModes.empty();
     }
@@ -270,8 +231,8 @@ private:
   }
 
   void createLogicalDevice() {
-    QueueFamilyIndices indices =
-        findQueueFamilies(physicalDevice_->handle, surface_);
+    auto indices = Vulkan::QueueFamilyIndices::FindQueueFamilies(
+        physicalDevice_->handle, surface_);
 
     std::vector<VkDeviceQueueCreateInfo> queueCreateInfos;
     std::set<uint32_t> uniqueQueueFamilies = {indices.graphicsFamily.value(),
@@ -321,7 +282,8 @@ private:
 
   void createSwapChain(int width, int height) {
     auto swapChainSupport =
-        Vulkan::SwapChainSupportDetails::QuerySwapChainSupport(physicalDevice_->handle, surface_);
+        Vulkan::SwapChainSupportDetails::QuerySwapChainSupport(
+            physicalDevice_->handle, surface_);
 
     VkSurfaceFormatKHR surfaceFormat =
         chooseSwapSurfaceFormat(swapChainSupport.formats);
@@ -347,8 +309,8 @@ private:
     createInfo.imageArrayLayers = 1;
     createInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
 
-    QueueFamilyIndices indices =
-        findQueueFamilies(physicalDevice_->handle, surface_);
+    auto indices = Vulkan::QueueFamilyIndices::FindQueueFamilies(
+        physicalDevice_->handle, surface_);
     uint32_t queueFamilyIndices[] = {indices.graphicsFamily.value(),
                                      indices.presentFamily.value()};
 
@@ -592,8 +554,8 @@ private:
   }
 
   void createCommandPool() {
-    QueueFamilyIndices queueFamilyIndices =
-        findQueueFamilies(physicalDevice_->handle, surface_);
+    auto queueFamilyIndices = Vulkan::QueueFamilyIndices::FindQueueFamilies(
+        physicalDevice_->handle, surface_);
 
     VkCommandPoolCreateInfo poolInfo{};
     poolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;

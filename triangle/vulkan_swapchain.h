@@ -1,4 +1,5 @@
 #pragma once
+#include <optional>
 #include <vector>
 #include <vulkan/vulkan.h>
 
@@ -10,4 +11,14 @@ struct SwapChainSupportDetails {
   static SwapChainSupportDetails QuerySwapChainSupport(VkPhysicalDevice device,
                                                        VkSurfaceKHR surface);
 };
+struct QueueFamilyIndices {
+  std::optional<uint32_t> graphicsFamily;
+  std::optional<uint32_t> presentFamily;
+  static QueueFamilyIndices FindQueueFamilies(VkPhysicalDevice device,
+                                              VkSurfaceKHR surface);
+  bool isComplete() {
+    return graphicsFamily.has_value() && presentFamily.has_value();
+  }
+};
+
 } // namespace Vulkan
