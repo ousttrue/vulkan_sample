@@ -31,6 +31,19 @@ static bool checkValidationLayerSupport() {
   return true;
 }
 
+static VkResult CreateDebugUtilsMessengerEXT(
+    VkInstance instance, const VkDebugUtilsMessengerCreateInfoEXT *pCreateInfo,
+    const VkAllocationCallbacks *pAllocator,
+    VkDebugUtilsMessengerEXT *pDebugMessenger) {
+  auto func = (PFN_vkCreateDebugUtilsMessengerEXT)vkGetInstanceProcAddr(
+      instance, "vkCreateDebugUtilsMessengerEXT");
+  if (func != nullptr) {
+    return func(instance, pCreateInfo, pAllocator, pDebugMessenger);
+  } else {
+    return VK_ERROR_EXTENSION_NOT_PRESENT;
+  }
+}
+
 static VKAPI_ATTR VkBool32 VKAPI_CALL
 debugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
               VkDebugUtilsMessageTypeFlagsEXT messageType,
@@ -41,9 +54,18 @@ debugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
   return VK_FALSE;
 }
 
-namespace Vulkan {
+static void
+DestroyDebugUtilsMessengerEXT(VkInstance instance,
+                              VkDebugUtilsMessengerEXT debugMessenger,
+                              const VkAllocationCallbacks *pAllocator) {
+  auto func = (PFN_vkDestroyDebugUtilsMessengerEXT)vkGetInstanceProcAddr(
+      instance, "vkDestroyDebugUtilsMessengerEXT");
+  if (func != nullptr) {
+    func(instance, debugMessenger, pAllocator);
+  }
+}
 
-void populateDebugMessengerCreateInfo(
+static void populateDebugMessengerCreateInfo(
     VkDebugUtilsMessengerCreateInfoEXT &createInfo) {
   createInfo = {
       .sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT,
@@ -57,7 +79,16 @@ void populateDebugMessengerCreateInfo(
   };
 }
 
-Instance::~Instance() { vkDestroyInstance(handle, nullptr); }
+namespace Vulkan {
+
+Instance::~Instance() {
+
+  if (enableValidationLayers) {
+    DestroyDebugUtilsMessengerEXT(handle, debugMessenger, nullptr);
+  }
+
+  vkDestroyInstance(handle, nullptr);
+}
 
 std::shared_ptr<Instance> Instance::Create(const char **extensions, size_t size,
                                            bool enableValidationLayers) {
@@ -104,6 +135,17 @@ std::shared_ptr<Instance> Instance::Create(const char **extensions, size_t size,
 
   auto ptr = std::shared_ptr<Instance>(new Instance);
   ptr->handle = instance;
+
+  if (enableValidationLayers) {
+    ptr->enableValidationLayers = true;
+    VkDebugUtilsMessengerCreateInfoEXT createInfo;
+    populateDebugMessengerCreateInfo(createInfo);
+    if (::CreateDebugUtilsMessengerEXT(ptr->handle, &createInfo, nullptr,
+                                       &ptr->debugMessenger) != VK_SUCCESS) {
+      throw std::runtime_error("failed to set up debug messenger!");
+    }
+  }
+
   return ptr;
 }
 

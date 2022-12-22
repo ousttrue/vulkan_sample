@@ -14,31 +14,7 @@
 #include <vector>
 #include <vulkan/vulkan_core.h>
 
-static void
-DestroyDebugUtilsMessengerEXT(VkInstance instance,
-                              VkDebugUtilsMessengerEXT debugMessenger,
-                              const VkAllocationCallbacks *pAllocator) {
-  auto func = (PFN_vkDestroyDebugUtilsMessengerEXT)vkGetInstanceProcAddr(
-      instance, "vkDestroyDebugUtilsMessengerEXT");
-  if (func != nullptr) {
-    func(instance, debugMessenger, pAllocator);
-  }
-}
-
 const int MAX_FRAMES_IN_FLIGHT = 2;
-
-static VkResult CreateDebugUtilsMessengerEXT(
-    VkInstance instance, const VkDebugUtilsMessengerCreateInfoEXT *pCreateInfo,
-    const VkAllocationCallbacks *pAllocator,
-    VkDebugUtilsMessengerEXT *pDebugMessenger) {
-  auto func = (PFN_vkCreateDebugUtilsMessengerEXT)vkGetInstanceProcAddr(
-      instance, "vkCreateDebugUtilsMessengerEXT");
-  if (func != nullptr) {
-    return func(instance, pCreateInfo, pAllocator, pDebugMessenger);
-  } else {
-    return VK_ERROR_EXTENSION_NOT_PRESENT;
-  }
-}
 
 struct SwapChainSupportDetails {
   VkSurfaceCapabilitiesKHR capabilities;
@@ -121,7 +97,10 @@ public:
                   const GetSurface &getSurface) {
     instance_ =
         Vulkan::Instance::Create(extensions, size, enableValidationLayers);
-    setupDebugMessenger();
+    if (!instance_) {
+      return false;
+    }
+
     int w, h;
     surface = getSurface(instance_->handle, &w, &h);
     pickPhysicalDevice();
@@ -139,7 +118,6 @@ public:
 
 private:
   std::shared_ptr<Vulkan::Instance> instance_;
-  VkDebugUtilsMessengerEXT debugMessenger;
   VkSurfaceKHR surface;
 
   VkPhysicalDevice physicalDevice = VK_NULL_HANDLE;
@@ -188,24 +166,7 @@ private:
     vkDestroySwapchainKHR(device, swapChain, nullptr);
     vkDestroyDevice(device, nullptr);
 
-    if (enableValidationLayers) {
-      DestroyDebugUtilsMessengerEXT(instance_->handle, debugMessenger, nullptr);
-    }
-
     vkDestroySurfaceKHR(instance_->handle, surface, nullptr);
-  }
-
-  void setupDebugMessenger() {
-    if (!enableValidationLayers)
-      return;
-
-    VkDebugUtilsMessengerCreateInfoEXT createInfo;
-    Vulkan::populateDebugMessengerCreateInfo(createInfo);
-
-    if (CreateDebugUtilsMessengerEXT(instance_->handle, &createInfo, nullptr,
-                                     &debugMessenger) != VK_SUCCESS) {
-      throw std::runtime_error("failed to set up debug messenger!");
-    }
   }
 
   void pickPhysicalDevice() {
@@ -268,9 +229,7 @@ private:
     //       static_cast<uint32_t>(validationLayers.size());
     //   createInfo.ppEnabledLayerNames = validationLayers.data();
     // } else
-      {
-      createInfo.enabledLayerCount = 0;
-    }
+    { createInfo.enabledLayerCount = 0; }
 
     if (vkCreateDevice(physicalDevice, &createInfo, nullptr, &device) !=
         VK_SUCCESS) {
