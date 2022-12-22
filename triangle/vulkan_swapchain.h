@@ -21,4 +21,7 @@ struct QueueFamilyIndices {
   }
 };
 
+bool IsDeviceSuitable(VkPhysicalDevice device, VkSurfaceKHR surface,
+                             const std::vector<const char *> &deviceExtensions);
+
 } // namespace Vulkan

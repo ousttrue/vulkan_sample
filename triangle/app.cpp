@@ -39,58 +39,18 @@ public:
     vkEnumeratePhysicalDevices(instance, &deviceCount, devices.data());
 
     for (const auto &device : devices) {
-      if (isDeviceSuitable(device, surface)) {
-        // physicalDevice_ = device;
-        // break;
+      if (Vulkan::IsDeviceSuitable(device, surface, deviceExtensions_)) {
         auto ptr = std::shared_ptr<PhysicalDevice>(new PhysicalDevice);
         ptr->handle = device;
         return ptr;
       }
     }
 
-    // if (physicalDevice_ == VK_NULL_HANDLE) {
-    //   throw std::runtime_error("failed to find a suitable GPU!");
-    // }
+    // throw std::runtime_error("failed to find a suitable GPU!");
     return nullptr;
   }
 
 private:
-  static bool isDeviceSuitable(VkPhysicalDevice device, VkSurfaceKHR surface) {
-    auto indices =
-        Vulkan::QueueFamilyIndices::FindQueueFamilies(device, surface);
-
-    bool extensionsSupported = checkDeviceExtensionSupport(device);
-
-    bool swapChainAdequate = false;
-    if (extensionsSupported) {
-      auto swapChainSupport =
-          Vulkan::SwapChainSupportDetails::QuerySwapChainSupport(device,
-                                                                 surface);
-      swapChainAdequate = !swapChainSupport.formats.empty() &&
-                          !swapChainSupport.presentModes.empty();
-    }
-
-    return indices.isComplete() && extensionsSupported && swapChainAdequate;
-  }
-
-  static bool checkDeviceExtensionSupport(VkPhysicalDevice device) {
-    uint32_t extensionCount;
-    vkEnumerateDeviceExtensionProperties(device, nullptr, &extensionCount,
-                                         nullptr);
-
-    std::vector<VkExtensionProperties> availableExtensions(extensionCount);
-    vkEnumerateDeviceExtensionProperties(device, nullptr, &extensionCount,
-                                         availableExtensions.data());
-
-    std::set<std::string> requiredExtensions(deviceExtensions_.begin(),
-                                             deviceExtensions_.end());
-
-    for (const auto &extension : availableExtensions) {
-      requiredExtensions.erase(extension.extensionName);
-    }
-
-    return requiredExtensions.empty();
-  }
 };
 } // namespace Vulkan
 

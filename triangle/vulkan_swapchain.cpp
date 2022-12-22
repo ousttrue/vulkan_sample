@@ -1,4 +1,6 @@
 #include "vulkan_swapchain.h"
+#include <set>
+#include <string>
 
 namespace Vulkan {
 SwapChainSupportDetails
@@ -31,8 +33,9 @@ SwapChainSupportDetails::QuerySwapChainSupport(VkPhysicalDevice device,
   return details;
 }
 
-QueueFamilyIndices QueueFamilyIndices::FindQueueFamilies(VkPhysicalDevice device,
-                                     VkSurfaceKHR surface) {
+QueueFamilyIndices
+QueueFamilyIndices::FindQueueFamilies(VkPhysicalDevice device,
+                                      VkSurfaceKHR surface) {
   uint32_t queueFamilyCount = 0;
   vkGetPhysicalDeviceQueueFamilyProperties(device, &queueFamilyCount, nullptr);
 
@@ -62,6 +65,45 @@ QueueFamilyIndices QueueFamilyIndices::FindQueueFamilies(VkPhysicalDevice device
   }
 
   return indices;
+}
+
+static bool
+checkDeviceExtensionSupport(VkPhysicalDevice device,
+                            const std::vector<const char *> &deviceExtensions) {
+  uint32_t extensionCount;
+  vkEnumerateDeviceExtensionProperties(device, nullptr, &extensionCount,
+                                       nullptr);
+
+  std::vector<VkExtensionProperties> availableExtensions(extensionCount);
+  vkEnumerateDeviceExtensionProperties(device, nullptr, &extensionCount,
+                                       availableExtensions.data());
+
+  std::set<std::string> requiredExtensions(deviceExtensions.begin(),
+                                           deviceExtensions.end());
+
+  for (const auto &extension : availableExtensions) {
+    requiredExtensions.erase(extension.extensionName);
+  }
+
+  return requiredExtensions.empty();
+}
+
+bool IsDeviceSuitable(VkPhysicalDevice device, VkSurfaceKHR surface,
+                      const std::vector<const char *> &deviceExtensions) {
+  auto indices = QueueFamilyIndices::FindQueueFamilies(device, surface);
+
+  bool extensionsSupported =
+      checkDeviceExtensionSupport(device, deviceExtensions);
+
+  bool swapChainAdequate = false;
+  if (extensionsSupported) {
+    auto swapChainSupport =
+        Vulkan::SwapChainSupportDetails::QuerySwapChainSupport(device, surface);
+    swapChainAdequate = !swapChainSupport.formats.empty() &&
+                        !swapChainSupport.presentModes.empty();
+  }
+
+  return indices.isComplete() && extensionsSupported && swapChainAdequate;
 }
 
 } // namespace Vulkan
