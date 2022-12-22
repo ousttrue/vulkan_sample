@@ -79,7 +79,7 @@ int main() {
     return 1;
   }
 
-  HelloTriangleApplication app(enableValidationLayers);
+  HelloTriangleApplication app;
 
   auto extensions = getRequiredExtensions(enableValidationLayers);
 
@@ -89,7 +89,7 @@ int main() {
     return w.createSurface(instance);
   };
 
-  if (!app.initialize(extensions.data(), extensions.size(), getSurface)) {
+  if (!app.initialize(extensions.data(), extensions.size(), getSurface, enableValidationLayers)) {
     return 1;
   }
 

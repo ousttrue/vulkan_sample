@@ -32,14 +32,11 @@ struct QueueFamilyIndices {
 };
 
 class Impl {
-  bool enableValidationLayers;
-
   const std::vector<const char *> deviceExtensions = {
       VK_KHR_SWAPCHAIN_EXTENSION_NAME};
 
 public:
-  Impl(bool enableValidationLayers)
-      : enableValidationLayers(enableValidationLayers) {}
+  Impl() {}
   ~Impl() {
     vkDeviceWaitIdle(device);
     cleanup();
@@ -94,7 +91,7 @@ public:
   }
 
   bool initialize(const char **extensions, size_t size,
-                  const GetSurface &getSurface) {
+                  const GetSurface &getSurface, bool enableValidationLayers) {
     instance_ =
         Vulkan::Instance::Create(extensions, size, enableValidationLayers);
     if (!instance_) {
@@ -103,6 +100,7 @@ public:
 
     int w, h;
     surface = getSurface(instance_->handle, &w, &h);
+
     pickPhysicalDevice();
     createLogicalDevice();
     createSwapChain(w, h);
@@ -783,11 +781,12 @@ private:
 ///
 /// HelloTriangleApplication
 ///
-HelloTriangleApplication::HelloTriangleApplication(bool enableValidationLayers)
-    : impl_(new Impl(enableValidationLayers)) {}
+HelloTriangleApplication::HelloTriangleApplication() : impl_(new Impl) {}
 HelloTriangleApplication::~HelloTriangleApplication() { delete impl_; }
 bool HelloTriangleApplication::initialize(const char **extensions, size_t size,
-                                          const GetSurface &getSurface) {
-  return impl_->initialize(extensions, size, getSurface);
+                                          const GetSurface &getSurface,
+                                          bool enableValidationLayers) {
+  return impl_->initialize(extensions, size, getSurface,
+                           enableValidationLayers);
 }
 void HelloTriangleApplication::drawFrame() { impl_->drawFrame(); }

@@ -9,9 +9,9 @@ class HelloTriangleApplication {
   class Impl *impl_ = nullptr;
 
 public:
-  HelloTriangleApplication(bool enableValidationLayers);
+  HelloTriangleApplication();
   ~HelloTriangleApplication();
   bool initialize(const char **extensions, size_t size,
-                  const GetSurface &callback);
+                  const GetSurface &callback, bool enableValidationLayers);
   void drawFrame();
 };
