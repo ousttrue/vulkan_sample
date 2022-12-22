@@ -1,5 +1,6 @@
 #include "app.h"
 #include "vulkan_instance.h"
+#include "vulkan_swapchain.h"
 #include <algorithm>
 #include <cstdint>
 #include <cstdlib>
@@ -19,40 +20,6 @@ const int MAX_FRAMES_IN_FLIGHT = 2;
 
 static const std::vector<const char *> deviceExtensions_ = {
     VK_KHR_SWAPCHAIN_EXTENSION_NAME};
-
-struct SwapChainSupportDetails {
-  VkSurfaceCapabilitiesKHR capabilities;
-  std::vector<VkSurfaceFormatKHR> formats;
-  std::vector<VkPresentModeKHR> presentModes;
-};
-SwapChainSupportDetails querySwapChainSupport(VkPhysicalDevice device,
-                                              VkSurfaceKHR surface) {
-  SwapChainSupportDetails details;
-
-  vkGetPhysicalDeviceSurfaceCapabilitiesKHR(device, surface,
-                                            &details.capabilities);
-
-  uint32_t formatCount;
-  vkGetPhysicalDeviceSurfaceFormatsKHR(device, surface, &formatCount, nullptr);
-
-  if (formatCount != 0) {
-    details.formats.resize(formatCount);
-    vkGetPhysicalDeviceSurfaceFormatsKHR(device, surface, &formatCount,
-                                         details.formats.data());
-  }
-
-  uint32_t presentModeCount;
-  vkGetPhysicalDeviceSurfacePresentModesKHR(device, surface, &presentModeCount,
-                                            nullptr);
-
-  if (presentModeCount != 0) {
-    details.presentModes.resize(presentModeCount);
-    vkGetPhysicalDeviceSurfacePresentModesKHR(
-        device, surface, &presentModeCount, details.presentModes.data());
-  }
-
-  return details;
-}
 
 struct QueueFamilyIndices {
   std::optional<uint32_t> graphicsFamily;
@@ -136,8 +103,8 @@ private:
 
     bool swapChainAdequate = false;
     if (extensionsSupported) {
-      SwapChainSupportDetails swapChainSupport =
-          querySwapChainSupport(device, surface);
+      auto swapChainSupport =
+          Vulkan::SwapChainSupportDetails::QuerySwapChainSupport(device, surface);
       swapChainAdequate = !swapChainSupport.formats.empty() &&
                           !swapChainSupport.presentModes.empty();
     }
@@ -353,8 +320,8 @@ private:
   }
 
   void createSwapChain(int width, int height) {
-    SwapChainSupportDetails swapChainSupport =
-        querySwapChainSupport(physicalDevice_->handle, surface_);
+    auto swapChainSupport =
+        Vulkan::SwapChainSupportDetails::QuerySwapChainSupport(physicalDevice_->handle, surface_);
 
     VkSurfaceFormatKHR surfaceFormat =
         chooseSwapSurfaceFormat(swapChainSupport.formats);
