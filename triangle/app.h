@@ -1,9 +1,11 @@
 #pragma once
-#define GLFW_INCLUDE_VULKAN
-#include <GLFW/glfw3.h>
 #include <optional>
 #include <string>
 #include <vector>
+#include <vulkan/vulkan.h>
+#include <vulkan/vulkan_core.h>
+
+extern const bool enableValidationLayers;
 
 struct SwapChainSupportDetails {
   VkSurfaceCapabilitiesKHR capabilities;
@@ -22,11 +24,34 @@ struct QueueFamilyIndices {
 
 class HelloTriangleApplication {
 public:
-  void run();
+  HelloTriangleApplication() {}
+  ~HelloTriangleApplication() {
+    vkDeviceWaitIdle(device);
+    cleanup();
+  }
+  void drawFrame();
+
+  VkInstance initVulkan(const std::vector<const char *> &extensions) {
+    createInstance(extensions);
+    setupDebugMessenger();
+    return instance;
+  }
+
+  void createSwapChain(VkSurfaceKHR surface, int width, int height) {
+    this->surface = surface;
+    pickPhysicalDevice();
+    createLogicalDevice();
+    createSwapChain(width, height);
+    createImageViews();
+    createRenderPass();
+    createGraphicsPipeline();
+    createFramebuffers();
+    createCommandPool();
+    createCommandBuffer();
+    createSyncObjects();
+  }
 
 private:
-  GLFWwindow *window;
-
   VkInstance instance;
   VkDebugUtilsMessengerEXT debugMessenger;
   VkSurfaceKHR surface;
@@ -55,32 +80,14 @@ private:
   VkSemaphore renderFinishedSemaphore;
   VkFence inFlightFence;
 
-  void initWindow();
-  void initVulkan() {
-    createInstance();
-    setupDebugMessenger();
-    createSurface();
-    pickPhysicalDevice();
-    createLogicalDevice();
-    createSwapChain();
-    createImageViews();
-    createRenderPass();
-    createGraphicsPipeline();
-    createFramebuffers();
-    createCommandPool();
-    createCommandBuffer();
-    createSyncObjects();
-  }
-  void mainLoop();
   void cleanup();
-  void createInstance();
+  void createInstance(const std::vector<const char *> &extensions);
   void populateDebugMessengerCreateInfo(
       VkDebugUtilsMessengerCreateInfoEXT &createInfo);
   void setupDebugMessenger();
-  void createSurface();
   void pickPhysicalDevice();
   void createLogicalDevice();
-  void createSwapChain();
+  void createSwapChain(int width, int height);
   void createImageViews();
   void createRenderPass();
   void createGraphicsPipeline();
@@ -89,18 +96,17 @@ private:
   void createCommandBuffer();
   void recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex);
   void createSyncObjects();
-  void drawFrame();
   VkShaderModule createShaderModule(const std::vector<char> &code);
   VkSurfaceFormatKHR chooseSwapSurfaceFormat(
       const std::vector<VkSurfaceFormatKHR> &availableFormats);
   VkPresentModeKHR chooseSwapPresentMode(
       const std::vector<VkPresentModeKHR> &availablePresentModes);
-  VkExtent2D chooseSwapExtent(const VkSurfaceCapabilitiesKHR &capabilities);
+  VkExtent2D chooseSwapExtent(int width, int height,
+                              const VkSurfaceCapabilitiesKHR &capabilities);
   SwapChainSupportDetails querySwapChainSupport(VkPhysicalDevice device);
   bool isDeviceSuitable(VkPhysicalDevice device);
   bool checkDeviceExtensionSupport(VkPhysicalDevice device);
   QueueFamilyIndices findQueueFamilies(VkPhysicalDevice device);
-  std::vector<const char *> getRequiredExtensions();
   bool checkValidationLayerSupport();
   static std::vector<char> readFile(const std::string &filename);
   static VKAPI_ATTR VkBool32 VKAPI_CALL

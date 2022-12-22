@@ -10,9 +10,6 @@
 #include <stdexcept>
 #include <vector>
 
-const uint32_t WIDTH = 800;
-const uint32_t HEIGHT = 600;
-
 const int MAX_FRAMES_IN_FLIGHT = 2;
 
 const std::vector<const char *> validationLayers = {
@@ -50,31 +47,6 @@ void DestroyDebugUtilsMessengerEXT(VkInstance instance,
   }
 }
 
-void HelloTriangleApplication::run() {
-  initWindow();
-  initVulkan();
-  mainLoop();
-  cleanup();
-}
-
-void HelloTriangleApplication::initWindow() {
-  glfwInit();
-
-  glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
-  glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
-
-  window = glfwCreateWindow(WIDTH, HEIGHT, "Vulkan", nullptr, nullptr);
-}
-
-void HelloTriangleApplication::mainLoop() {
-  while (!glfwWindowShouldClose(window)) {
-    glfwPollEvents();
-    drawFrame();
-  }
-
-  vkDeviceWaitIdle(device);
-}
-
 void HelloTriangleApplication::cleanup() {
   vkDestroySemaphore(device, renderFinishedSemaphore, nullptr);
   vkDestroySemaphore(device, imageAvailableSemaphore, nullptr);
@@ -103,13 +75,9 @@ void HelloTriangleApplication::cleanup() {
 
   vkDestroySurfaceKHR(instance, surface, nullptr);
   vkDestroyInstance(instance, nullptr);
-
-  glfwDestroyWindow(window);
-
-  glfwTerminate();
 }
 
-void HelloTriangleApplication::createInstance() {
+void HelloTriangleApplication::createInstance(const std::vector<const char*> &extensions) {
   if (enableValidationLayers && !checkValidationLayerSupport()) {
     throw std::runtime_error("validation layers requested, but not available!");
   }
@@ -126,7 +94,6 @@ void HelloTriangleApplication::createInstance() {
   createInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
   createInfo.pApplicationInfo = &appInfo;
 
-  auto extensions = getRequiredExtensions();
   createInfo.enabledExtensionCount = static_cast<uint32_t>(extensions.size());
   createInfo.ppEnabledExtensionNames = extensions.data();
 
@@ -172,13 +139,6 @@ void HelloTriangleApplication::setupDebugMessenger() {
   if (CreateDebugUtilsMessengerEXT(instance, &createInfo, nullptr,
                                    &debugMessenger) != VK_SUCCESS) {
     throw std::runtime_error("failed to set up debug messenger!");
-  }
-}
-
-void HelloTriangleApplication::createSurface() {
-  if (glfwCreateWindowSurface(instance, window, nullptr, &surface) !=
-      VK_SUCCESS) {
-    throw std::runtime_error("failed to create window surface!");
   }
 }
 
@@ -254,7 +214,7 @@ void HelloTriangleApplication::createLogicalDevice() {
   vkGetDeviceQueue(device, indices.presentFamily.value(), 0, &presentQueue);
 }
 
-void HelloTriangleApplication::createSwapChain() {
+void HelloTriangleApplication::createSwapChain(int width, int height) {
   SwapChainSupportDetails swapChainSupport =
       querySwapChainSupport(physicalDevice);
 
@@ -262,7 +222,7 @@ void HelloTriangleApplication::createSwapChain() {
       chooseSwapSurfaceFormat(swapChainSupport.formats);
   VkPresentModeKHR presentMode =
       chooseSwapPresentMode(swapChainSupport.presentModes);
-  VkExtent2D extent = chooseSwapExtent(swapChainSupport.capabilities);
+  VkExtent2D extent = chooseSwapExtent(width, height, swapChainSupport.capabilities);
 
   uint32_t imageCount = swapChainSupport.capabilities.minImageCount + 1;
   if (swapChainSupport.capabilities.maxImageCount > 0 &&
@@ -549,7 +509,8 @@ void HelloTriangleApplication::createCommandBuffer() {
   }
 }
 
-void HelloTriangleApplication::recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex) {
+void HelloTriangleApplication::recordCommandBuffer(
+    VkCommandBuffer commandBuffer, uint32_t imageIndex) {
   VkCommandBufferBeginInfo beginInfo{};
   beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
 
@@ -703,14 +664,12 @@ VkPresentModeKHR HelloTriangleApplication::chooseSwapPresentMode(
   return VK_PRESENT_MODE_FIFO_KHR;
 }
 
-VkExtent2D HelloTriangleApplication::chooseSwapExtent(
+VkExtent2D HelloTriangleApplication::chooseSwapExtent(int width, int height,
     const VkSurfaceCapabilitiesKHR &capabilities) {
   if (capabilities.currentExtent.width !=
       std::numeric_limits<uint32_t>::max()) {
     return capabilities.currentExtent;
   } else {
-    int width, height;
-    glfwGetFramebufferSize(window, &width, &height);
 
     VkExtent2D actualExtent = {static_cast<uint32_t>(width),
                                static_cast<uint32_t>(height)};
@@ -824,20 +783,6 @@ HelloTriangleApplication::findQueueFamilies(VkPhysicalDevice device) {
   return indices;
 }
 
-std::vector<const char *> HelloTriangleApplication::getRequiredExtensions() {
-  uint32_t glfwExtensionCount = 0;
-  const char **glfwExtensions;
-  glfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
-
-  std::vector<const char *> extensions(glfwExtensions,
-                                       glfwExtensions + glfwExtensionCount);
-
-  if (enableValidationLayers) {
-    extensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
-  }
-
-  return extensions;
-}
 
 bool HelloTriangleApplication::checkValidationLayerSupport() {
   uint32_t layerCount;
