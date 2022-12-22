@@ -26,12 +26,6 @@ DestroyDebugUtilsMessengerEXT(VkInstance instance,
 
 const int MAX_FRAMES_IN_FLIGHT = 2;
 
-#ifdef NDEBUG
-const bool enableValidationLayers = false;
-#else
-const bool enableValidationLayers = true;
-#endif
-
 static VkResult CreateDebugUtilsMessengerEXT(
     VkInstance instance, const VkDebugUtilsMessengerCreateInfoEXT *pCreateInfo,
     const VkAllocationCallbacks *pAllocator,
@@ -61,6 +55,8 @@ struct QueueFamilyIndices {
 };
 
 class Impl {
+  bool enableValidationLayers;
+
   const std::vector<const char *> validationLayers = {
       "VK_LAYER_KHRONOS_validation"};
 
@@ -68,7 +64,8 @@ class Impl {
       VK_KHR_SWAPCHAIN_EXTENSION_NAME};
 
 public:
-  Impl() {}
+  Impl(bool enableValidationLayers)
+      : enableValidationLayers(enableValidationLayers) {}
   ~Impl() {
     vkDeviceWaitIdle(device);
     cleanup();
@@ -122,17 +119,14 @@ public:
     vkQueuePresentKHR(presentQueue, &presentInfo);
   }
 
-  VkInstance initVulkan(const std::vector<const char *> &extensions) {
-    createInstance(extensions);
+  bool initialize(const char ** extensions, size_t size, const GetSurface &getSurface) {
+    createInstance(extensions, size);
     setupDebugMessenger();
-    return instance;
-  }
-
-  void createSwapChain(VkSurfaceKHR surface, int width, int height) {
-    this->surface = surface;
+    int w, h;
+    surface = getSurface(instance, &w, &h);
     pickPhysicalDevice();
     createLogicalDevice();
-    createSwapChain(width, height);
+    createSwapChain(w, h);
     createImageViews();
     createRenderPass();
     createGraphicsPipeline();
@@ -140,6 +134,7 @@ public:
     createCommandPool();
     createCommandBuffer();
     createSyncObjects();
+    return true;
   }
 
 private:
@@ -201,7 +196,7 @@ private:
     vkDestroyInstance(instance, nullptr);
   }
 
-  void createInstance(const std::vector<const char *> &extensions) {
+  void createInstance(const char ** extensions, size_t size) {
     if (enableValidationLayers && !checkValidationLayerSupport()) {
       throw std::runtime_error(
           "validation layers requested, but not available!");
@@ -219,8 +214,8 @@ private:
     createInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
     createInfo.pApplicationInfo = &appInfo;
 
-    createInfo.enabledExtensionCount = static_cast<uint32_t>(extensions.size());
-    createInfo.ppEnabledExtensionNames = extensions.data();
+    createInfo.enabledExtensionCount = static_cast<uint32_t>(size);
+    createInfo.ppEnabledExtensionNames = extensions;
 
     VkDebugUtilsMessengerCreateInfoEXT debugCreateInfo{};
     if (enableValidationLayers) {
@@ -918,14 +913,11 @@ private:
 ///
 /// HelloTriangleApplication
 ///
-HelloTriangleApplication::HelloTriangleApplication() : impl_(new Impl) {}
+HelloTriangleApplication::HelloTriangleApplication(bool enableValidationLayers)
+    : impl_(new Impl(enableValidationLayers)) {}
 HelloTriangleApplication::~HelloTriangleApplication() { delete impl_; }
-VkInstance HelloTriangleApplication::initVulkan(
-    const std::vector<const char *> &extensions) {
-  return impl_->initVulkan(extensions);
-}
-void HelloTriangleApplication::createSwapChain(VkSurfaceKHR surface, int width,
-                                               int height) {
-  impl_->createSwapChain(surface, width, height);
+bool HelloTriangleApplication::initialize(
+    const char ** extensions, size_t size, const GetSurface &getSurface) {
+  return impl_->initialize(extensions, size, getSurface);
 }
 void HelloTriangleApplication::drawFrame() { impl_->drawFrame(); }

@@ -1,16 +1,17 @@
 #pragma once
-#include <vector>
+#include <functional>
 #include <vulkan/vulkan.h>
 
-extern const bool enableValidationLayers;
+using GetSurface =
+    std::function<VkSurfaceKHR(VkInstance, int *width, int *height)>;
 
 class HelloTriangleApplication {
   class Impl *impl_ = nullptr;
 
 public:
-  HelloTriangleApplication();
+  HelloTriangleApplication(bool enableValidationLayers);
   ~HelloTriangleApplication();
-  VkInstance initVulkan(const std::vector<const char *> &extensions);
-  void createSwapChain(VkSurfaceKHR surface, int width, int height);
+  bool initialize(const char **extensions, size_t size,
+                  const GetSurface &callback);
   void drawFrame();
 };

@@ -2,7 +2,6 @@
 #include <iostream>
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
-#include <vulkan/vulkan_core.h>
 
 const uint32_t WIDTH = 800;
 const uint32_t HEIGHT = 600;
@@ -67,6 +66,12 @@ std::vector<const char *> getRequiredExtensions(bool enableValidationLayers) {
   return extensions;
 }
 
+#ifdef NDEBUG
+const bool enableValidationLayers = false;
+#else
+const bool enableValidationLayers = true;
+#endif
+
 int main() {
   AppWindow window;
 
@@ -74,14 +79,19 @@ int main() {
     return 1;
   }
 
-  HelloTriangleApplication app;
+  HelloTriangleApplication app(enableValidationLayers);
 
   auto extensions = getRequiredExtensions(enableValidationLayers);
-  auto instance = app.initVulkan(extensions);
-  auto surface = window.createSurface(instance);
-  int width, height;
-  window.getBufferSize(&width, &height);
-  app.createSwapChain(surface, width, height);
+
+  auto getSurface = [&w = window](VkInstance instance, int *width,
+                                  int *height) {
+    w.getBufferSize(width, height);
+    return w.createSurface(instance);
+  };
+
+  if (!app.initialize(extensions.data(), extensions.size(), getSurface)) {
+    return 1;
+  }
 
   try {
     while (window.newFrame()) {
