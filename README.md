@@ -2,4 +2,4 @@
 
 ## references
 
-- https://vulkan-tutorial.com/Drawing_a_triangle/Setup/Base_code
+- https://github.com/Overv/VulkanTutorial/blob/master/code/15_hello_triangle.cpp
