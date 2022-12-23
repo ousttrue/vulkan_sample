@@ -1,9 +1,9 @@
 #pragma once
-#include <optional>
-#include <vector>
 #include <algorithm>
 #include <memory>
+#include <optional>
 #include <stdexcept>
+#include <vector>
 #include <vulkan/vulkan.h>
 
 namespace Vulkan {
@@ -113,6 +113,11 @@ public:
 
     ptr->swapChainImageFormat_ = surfaceFormat.format;
     ptr->swapChainExtent_ = extent;
+
+    ptr->CreateImageViews();
+    ptr->CreateRenderPass();
+    ptr->CreateFramebuffers();
+
     return ptr;
   }
 

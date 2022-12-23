@@ -2,19 +2,7 @@
 #include "vulkan_device.h"
 #include "vulkan_instance.h"
 #include "vulkan_swapchain.h"
-#include <algorithm>
-#include <cstdint>
-#include <cstdlib>
-#include <cstring>
 #include <fstream>
-#include <iostream>
-#include <limits>
-#include <memory>
-#include <optional>
-#include <set>
-#include <stdexcept>
-#include <string>
-#include <vector>
 #include <vulkan/vulkan_core.h>
 
 const int MAX_FRAMES_IN_FLIGHT = 2;
@@ -48,13 +36,13 @@ public:
                                                   deviceExtensions_);
     swapChain_ = Vulkan::SwapChain::CreateSwapChain(
         device_->device_, physicalDevice_, surface_, w, h);
-    swapChain_->CreateImageViews();
-    swapChain_->CreateRenderPass();
-    swapChain_->CreateFramebuffers();
+
     createGraphicsPipeline();
+
     createCommandPool();
     createCommandBuffer();
     createSyncObjects();
+
     return true;
   }
 

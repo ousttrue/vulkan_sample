@@ -79,8 +79,6 @@ int main() {
     return 1;
   }
 
-  HelloTriangleApplication app;
-
   auto extensions = getRequiredExtensions(enableValidationLayers);
 
   auto getSurface = [&w = window](VkInstance instance, int *width,
@@ -89,6 +87,7 @@ int main() {
     return w.createSurface(instance);
   };
 
+  HelloTriangleApplication app;
   if (!app.initialize(extensions.data(), extensions.size(), getSurface, enableValidationLayers)) {
     return 1;
   }
