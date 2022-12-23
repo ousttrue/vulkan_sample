@@ -1,13 +1,14 @@
 #include "vulkan_device.h"
 #include "vulkan_swapchain.h"
-#include <vector>
 #include <set>
+#include <vector>
 
 namespace Vulkan {
 
 std::shared_ptr<Device>
 Device::CreateLogicalDevice(VkPhysicalDevice physicalDevice_,
-                            VkSurfaceKHR surface_, const std::vector<const char*> &deviceExtensions) {
+                            VkSurfaceKHR surface_,
+                            const std::vector<const char *> &deviceExtensions) {
   auto indices =
       Vulkan::QueueFamilyIndices::FindQueueFamilies(physicalDevice_, surface_);
 
@@ -59,7 +60,68 @@ Device::CreateLogicalDevice(VkPhysicalDevice physicalDevice_,
   VkQueue presentQueue_;
   vkGetDeviceQueue(ptr->device_, indices.presentFamily.value(), 0,
                    &ptr->presentQueue_);
+
+  VkSemaphoreCreateInfo semaphoreInfo{};
+  semaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
+
+  VkFenceCreateInfo fenceInfo{};
+  fenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
+  fenceInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
+
+  if (vkCreateSemaphore(ptr->device_, &semaphoreInfo, nullptr,
+                        &ptr->imageAvailableSemaphore_) != VK_SUCCESS ||
+      vkCreateSemaphore(ptr->device_, &semaphoreInfo, nullptr,
+                        &ptr->renderFinishedSemaphore_) != VK_SUCCESS ||
+      vkCreateFence(ptr->device_, &fenceInfo, nullptr, &ptr->inFlightFence_) !=
+          VK_SUCCESS) {
+    // throw std::runtime_error(
+    //     "failed to create synchronization objects for a frame!");
+    return nullptr;
+  }
+
   return ptr;
+}
+
+void Device::Sync() {
+  vkWaitForFences(device_, 1, &inFlightFence_, VK_TRUE, UINT64_MAX);
+  vkResetFences(device_, 1, &inFlightFence_);
+}
+
+void Device::Submit(const VkCommandBuffer *pCommandBuffer,
+                    VkSwapchainKHR swapchain, uint32_t imageIndex) {
+  VkSubmitInfo submitInfo{};
+  submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+
+  VkSemaphore waitSemaphores[] = {imageAvailableSemaphore_};
+  VkPipelineStageFlags waitStages[] = {
+      VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT};
+  submitInfo.waitSemaphoreCount = 1;
+  submitInfo.pWaitSemaphores = waitSemaphores;
+  submitInfo.pWaitDstStageMask = waitStages;
+
+  submitInfo.commandBufferCount = 1;
+  submitInfo.pCommandBuffers = pCommandBuffer;
+
+  VkSemaphore signalSemaphores[] = {renderFinishedSemaphore_};
+  submitInfo.signalSemaphoreCount = 1;
+  submitInfo.pSignalSemaphores = signalSemaphores;
+
+  if (vkQueueSubmit(graphicsQueue_, 1, &submitInfo, inFlightFence_) !=
+      VK_SUCCESS) {
+    throw std::runtime_error("failed to submit draw command buffer!");
+  }
+
+  VkPresentInfoKHR presentInfo{};
+  presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
+
+  presentInfo.waitSemaphoreCount = 1;
+  presentInfo.pWaitSemaphores = signalSemaphores;
+
+  VkSwapchainKHR swapChains[] = {swapchain};
+  presentInfo.swapchainCount = 1;
+  presentInfo.pSwapchains = swapChains;
+  presentInfo.pImageIndices = &imageIndex;
+  vkQueuePresentKHR(presentQueue_, &presentInfo);
 }
 
 } // namespace Vulkan

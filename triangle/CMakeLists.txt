@@ -20,8 +20,14 @@ FetchContent_MakeAvailable(glfw)
 
 set(TARGET_NAME triangle)
 add_executable(
-  ${TARGET_NAME} main.cpp app.cpp vulkan_instance.cpp vulkan_swapchain.cpp
-                 vulkan_device.cpp vulkan_pipeline.cpp)
+  ${TARGET_NAME}
+  main.cpp
+  app.cpp
+  vulkan_instance.cpp
+  vulkan_swapchain.cpp
+  vulkan_device.cpp
+  vulkan_pipeline.cpp
+  vulkan_renderer.cpp)
 set_property(TARGET ${TARGET_NAME} PROPERTY CXX_STANDARD 20)
 target_link_libraries(${TARGET_NAME} PRIVATE glfw Vulkan::Vulkan)
 install(TARGETS ${TARGET_NAME})
