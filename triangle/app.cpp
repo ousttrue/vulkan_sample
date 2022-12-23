@@ -99,7 +99,6 @@ private:
   VkPhysicalDevice physicalDevice_;
   std::shared_ptr<Vulkan::Device> device_;
   std::shared_ptr<Vulkan::SwapChain> swapChain_;
-  std::vector<VkFramebuffer> swapChainFramebuffers_;
 
   VkPipelineLayout pipelineLayout_;
   VkPipeline graphicsPipeline_;
@@ -116,11 +115,6 @@ private:
     vkDestroyFence(device_->device_, inFlightFence_, nullptr);
 
     vkDestroyCommandPool(device_->device_, commandPool_, nullptr);
-
-    for (auto framebuffer : swapChainFramebuffers_) {
-      vkDestroyFramebuffer(device_->device_, framebuffer, nullptr);
-    }
-
     vkDestroyPipeline(device_->device_, graphicsPipeline_, nullptr);
     vkDestroyPipelineLayout(device_->device_, pipelineLayout_, nullptr);
 
@@ -289,7 +283,7 @@ private:
     VkRenderPassBeginInfo renderPassInfo{};
     renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
     renderPassInfo.renderPass = swapChain_->renderPass_;
-    renderPassInfo.framebuffer = swapChainFramebuffers_[imageIndex];
+    renderPassInfo.framebuffer = swapChain_->swapChainFramebuffers_[imageIndex];
     renderPassInfo.renderArea.offset = {0, 0};
     renderPassInfo.renderArea.extent = swapChain_->swapChainExtent_;
 

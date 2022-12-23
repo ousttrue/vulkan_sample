@@ -42,6 +42,9 @@ struct SwapChain {
 
 public:
   ~SwapChain() {
+    for (auto framebuffer : swapChainFramebuffers_) {
+      vkDestroyFramebuffer(device_, framebuffer, nullptr);
+    }
     vkDestroyRenderPass(device_, renderPass_, nullptr);
     for (auto imageView : swapChainImageViews_) {
       vkDestroyImageView(device_, imageView, nullptr);
